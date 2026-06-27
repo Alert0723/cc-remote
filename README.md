@@ -6,6 +6,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-22+-green.svg)](https://nodejs.org/)
 
+> 🤖 本项目由 **Claude Code** 辅助生成，目前仍在持续打磨迭代中。欢迎通过 [Issue](https://github.com/Alert0723/cc-remote/issues) 反馈 BUG 和改进建议。
+
 ---
 
 ## 这是什么？
@@ -171,6 +173,47 @@ pnpm typecheck
 # 代码检查
 pnpm lint
 ```
+
+## 参与贡献
+
+欢迎参与 CC Remote 的开发与改进！无论是功能建议、BUG 修复、文档完善还是使用反馈，你的贡献都很有价值。
+
+### 如何参与
+
+- 🐛 **提交 BUG**：在 [Issue](https://github.com/Alert0723/cc-remote/issues) 中描述问题，附上复现步骤与环境信息
+- 💡 **功能建议**：在 Issue 中提出新想法，和我们讨论可行性
+- 📝 **文档改进**：发现表述不清或遗漏？欢迎提交 PR 完善文档
+- 🔧 **代码贡献**：Fork → 创建分支 → 提交 PR，参考下方开发流程
+
+### 开发流程
+
+```bash
+# Fork 并 Clone
+git clone https://github.com/<your-username>/cc-remote.git
+cd cc-remote
+
+# 安装依赖
+pnpm install
+
+# 创建分支
+git checkout -b feature/your-feature
+
+# 开发（热重载）
+pnpm dev
+
+# 构建 & 验证
+pnpm build
+pnpm test
+pnpm typecheck
+pnpm lint
+
+# 提交 PR
+# PR 描述中请说明改动目的和测试情况
+```
+
+### 行为准则
+
+请保持友善、专业的交流氛围，尊重每一位贡献者。
 
 ## License
 
