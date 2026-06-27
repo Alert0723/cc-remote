@@ -67,6 +67,8 @@ interface Session {
   _cleaningUp?: boolean;
   /** spawn 模式：--resume 初始历史回放中，跳过 _cacheStreamEvent 避免与 JSONL 重复 */
   _resumeOutputting?: boolean;
+  /** JSONL 文件上次检测到的字节大小（用于心跳增量检测） */
+  _jsonlLastSize?: number;
 }
 
 /**
@@ -1343,14 +1345,57 @@ export class SessionManager extends EventEmitter {
   }
 
   /**
-   * 启动状态心跳：每 5 秒推送 session_list 确保客户端状态同步
+   * 启动状态心跳：每 5 秒推送 session_list + 检查 spawn 会话 JSONL 增量
    * 解决热重启后客户端 RingBuffer 恢复可能导致的过期状态问题
+   * 同时实现 spawn 会话的主机 CLI 消息实时同步
    */
   startHeartbeat(intervalMs = 5000): void {
     if (this._heartbeatTimer) return;
     this._heartbeatTimer = setInterval(() => {
       this._broadcastSessionList();
+      this._syncSpawnSessionsFromJsonl();
     }, intervalMs);
+  }
+
+  /**
+   * 检查 spawn 会话的 JSONL 是否有外部新增内容（主机 CLI 写入），有则推送更新历史给客户端
+   */
+  private async _syncSpawnSessionsFromJsonl(): Promise<void> {
+    for (const [sessionId, session] of this.sessions) {
+      // 仅处理无 watcher 的 spawn 会话（attach 模式由 JsonlWatcher 负责）
+      if (session.info.mode !== 'spawn' || session.watcher) continue;
+
+      // 跳过正在 resume 回放或正在生成回复的会话
+      if (session._resumeOutputting || session.info.status === 'busy') continue;
+
+      try {
+        const jsonlPath = JsonlHistory.resolveJsonlPath(sessionId, session.info.projectPath);
+        if (!jsonlPath) continue;
+
+        // 快速检查：JSONL 是否比缓存更大
+        const { statSync } = await import('fs');
+        let fileSize = 0;
+        try { fileSize = statSync(jsonlPath).size; } catch { continue; }
+
+        if (!session._jsonlLastSize) session._jsonlLastSize = 0;
+        if (fileSize <= session._jsonlLastSize) continue; // 无新增
+
+        session._jsonlLastSize = fileSize;
+
+        // 有新增：重新读取 JSONL 并推送更新
+        const fresh = await JsonlHistory.read(jsonlPath);
+        if (fresh && fresh.length > 0 && fresh.length !== session.historyMessages?.length) {
+          session.historyMessages = fresh;
+          this._broadcastEvent(createServerEvent('history', {
+            messages: fresh,
+            sessionId,
+            mode: 'spawn',
+          }, { sessionId }));
+        }
+      } catch {
+        // 静默失败，下次心跳重试
+      }
+    }
   }
 
   /**
