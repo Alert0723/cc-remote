@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, coder]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -26,9 +26,6 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -36,7 +33,7 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
