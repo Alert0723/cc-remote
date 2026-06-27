@@ -6,8 +6,7 @@ echo ==============================
 echo   CC Remote - Rebuild
 echo ==============================
 echo.
-set PD=%USERPROFILE%\.claude\tools\cc-remote
-if not exist "%PD%" (echo [FAIL] Project not found: %PD% & pause & exit /b 1)
+set "PD=%~dp0"
 cd /d "%PD%"
 
 echo [INFO] Pulling latest...
@@ -26,7 +25,6 @@ echo ==============================
 echo   Rebuild Complete!
 echo ==============================
 echo.
-echo   Run start-cc-remote.bat to start:
-echo   %PD%\start-cc-remote.bat
+echo   Run start-cc-remote.bat to start.
 echo.
 pause

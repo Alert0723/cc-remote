@@ -60,6 +60,31 @@ npx cc-remote
 - 中间**消息区** —— 实时显示 Claude Code 的流式输出
 - 底部**输入框** —— 发送消息
 
+### 从源码构建启动
+
+> 如果你 clone 了本仓库但还没构建，使用项目根目录下的脚本即可一键搞定。
+
+| 脚本 | 平台 | 说明 |
+|------|------|------|
+| `install-cc-remote.bat` / `.sh` | Windows / macOS & Linux | 检查 Node.js / pnpm → 安装依赖 → 构建 |
+| `rebuild-cc-remote.bat` / `.sh` | Windows / macOS & Linux | 拉取最新代码 + 重新构建（用于更新） |
+| `start-cc-remote.bat` / `.sh` | Windows / macOS & Linux | 启动服务（`node dist/startup.js`） |
+
+**首次使用：**
+
+```bash
+# Windows：双击运行
+install-cc-remote.bat
+# 构建完成后启动
+start-cc-remote.bat
+
+# macOS / Linux：
+bash install-cc-remote.sh
+bash start-cc-remote.sh
+```
+
+后续更新只需运行 `rebuild-cc-remote.bat`（或 `.sh`），然后重新启动。
+
 ## 功能一览
 
 | 功能 | 说明 |
