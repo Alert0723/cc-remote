@@ -1471,7 +1471,7 @@ export class SessionManager extends EventEmitter {
     const sessionsDir = join(homedir(), '.claude', 'sessions');
     const metaPath = join(sessionsDir, `${sessionId}.json`);
     const projectPath = session?.info.projectPath || process.cwd();
-    let hasMeta = existsSync(metaPath);
+    const hasMeta = existsSync(metaPath);
 
     if (!hasMeta) {
       // spawn 会话无元数据文件 → 创建一份用于磁盘列表
