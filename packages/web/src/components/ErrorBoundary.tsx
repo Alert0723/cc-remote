@@ -62,8 +62,8 @@ export class ErrorBoundary extends Component<Props, State> {
             justifyContent: 'center',
             height: '100dvh',
             padding: '24px',
-            background: 'var(--bg-primary, #0F1117)',
-            color: 'var(--text-primary, #EBECF0)',
+            background: 'var(--bg-primary, #161411)',
+            color: 'var(--text-primary, #E8E4E0)',
             fontFamily: "'Inter', -apple-system, sans-serif",
             textAlign: 'center',
             gap: '16px',
@@ -89,7 +89,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </h2>
           <p style={{
             fontSize: '13px',
-            color: 'var(--text-secondary, #9496A0)',
+            color: 'var(--text-secondary, #95908A)',
             maxWidth: '280px',
             lineHeight: 1.5,
             margin: 0,
@@ -99,8 +99,8 @@ export class ErrorBoundary extends Component<Props, State> {
           {this.state.error && (
             <code style={{
               fontSize: '11px',
-              color: 'var(--text-muted, #5F616A)',
-              background: 'var(--bg-tertiary, #1C1F28)',
+              color: 'var(--text-muted, #615D58)',
+              background: 'var(--bg-tertiary, #22201C)',
               padding: '8px 12px',
               borderRadius: '8px',
               maxWidth: '100%',
@@ -134,9 +134,9 @@ export class ErrorBoundary extends Component<Props, State> {
               style={{
                 padding: '10px 24px',
                 borderRadius: '10px',
-                border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
+                border: '1px solid var(--border-color, rgba(255,255,255,0.07))',
                 background: 'transparent',
-                color: 'var(--text-secondary, #9496A0)',
+                color: 'var(--text-secondary, #95908A)',
                 fontSize: '14px',
                 fontWeight: 500,
                 fontFamily: "'Inter', sans-serif",
