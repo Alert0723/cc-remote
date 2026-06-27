@@ -9,11 +9,14 @@ import { shortenPath as shortenPathUtil } from '../lib/path.js';
 import { useSessionStore } from '../stores/sessionStore.js';
 import { useConnectionStore } from '../stores/connectionStore.js';
 import { showToast } from '../lib/toast.js';
+import { getRecentPaths, addRecentPath } from '../lib/recentPaths.js';
 import type { SessionInfo } from '@cc-remote/shared';
 
 interface SessionDrawerProps {
   open: boolean;
   onClose: () => void;
+  /** 打开后自动展开「新建会话」路径选择器 */
+  autoCreate?: boolean;
 }
 
 /** 磁盘可用会话条目 */
@@ -388,7 +391,7 @@ function TrashIcon() {
 
 // ─── 主组件 ────────────────────────────────────────────────
 
-export function SessionDrawer({ open, onClose }: SessionDrawerProps) {
+export function SessionDrawer({ open, onClose, autoCreate }: SessionDrawerProps) {
   const sessions = useSessionStore((s) => s.sessions);
   const currentSessionId = useSessionStore((s) => s.currentSessionId);
   const setCurrentSession = useSessionStore((s) => s.setCurrentSession);
@@ -795,14 +798,7 @@ export function SessionDrawer({ open, onClose }: SessionDrawerProps) {
             flexShrink: 0,
           }}
         >
-          <CreateSessionButton
-            recentPaths={[
-              ...new Set([
-                ...sessions.map(s => s.projectPath).filter(Boolean),
-                ...availableSessions.map(a => a.projectPath).filter(Boolean),
-              ] as string[]),
-            ]}
-          />
+          <CreateSessionButton autoExpand={autoCreate} />
         </div>
       </div>
 
@@ -1058,16 +1054,19 @@ function DiskSessionContent({
   );
 }
 
-/** 创建新会话按钮（从已有会话中选项目路径） */
-function CreateSessionButton({
-  recentPaths,
-}: {
-  recentPaths: string[];
-}) {
+/** 创建新会话按钮（独立持久化的项目路径历史） */
+function CreateSessionButton({ autoExpand }: { autoExpand?: boolean }) {
   const createSession = useSessionStore((s) => s.createSession);
   const [showPicker, setShowPicker] = useState(false);
   const { wsClient } = useConnectionStore.getState();
   const isConnected = wsClient?.isConnected();
+
+  // 自动展开路径选择器（从 + 按钮跳转时）
+  useEffect(() => {
+    if (autoExpand) setShowPicker(true);
+  }, [autoExpand]);
+
+  const recentPaths = showPicker ? getRecentPaths() : [];
 
   return (
     <div>
@@ -1081,6 +1080,7 @@ function CreateSessionButton({
             <button
               key={p}
               onClick={async () => {
+                addRecentPath(p);
                 try {
                   await createSession({ projectPath: p });
                   showToast('已创建', 'success');

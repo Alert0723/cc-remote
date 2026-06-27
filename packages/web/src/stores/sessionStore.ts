@@ -296,7 +296,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
           }
         }
 
-        messages.set(sessionId, trimMessages(sessionMessages));
+        messages.set(sessionId, [...trimMessages(sessionMessages)]);
         set({ messages: new Map(messages) });
       } else if (event.type === 'approval_request') {
         // 权限审批请求：弹出对话框
@@ -390,7 +390,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
           merged.push(msg);
         }
-        allMessages.set(sessionId, trimMessages(merged));
+        allMessages.set(sessionId, [...trimMessages(merged)]);
         set({
           messages: new Map(allMessages),
           currentSessionId: currentSessionId || sessionId,
@@ -427,7 +427,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
       const { messages } = get();
       const sessionMessages = messages.get(sessionId) || [];
       sessionMessages.push(message);
-      messages.set(sessionId, trimMessages(sessionMessages));
+      messages.set(sessionId, [...trimMessages(sessionMessages)]);
       set({ messages: new Map(messages) });
     },
 

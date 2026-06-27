@@ -59,13 +59,11 @@ export function ChatView() {
   const messageListRef = useRef<MessageListHandle>(null);
   const [indexOpen, setIndexOpen] = useState(false);
   const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false);
-  const [fabOpen, setFabOpen] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [debugMenuOpen, setDebugMenuOpen] = useState(false);
   const [restartConfirm, setRestartConfirm] = useState(false);
   const [restarting, setRestarting] = useState(false);
   const debugMenuRef = useRef<HTMLDivElement>(null);
-  const createSession = useSessionStore((s) => s.createSession);
   const isConnected = useConnectionStore((s) => s.status) === 'connected';
   const apiClient = useConnectionStore((s) => s.apiClient);
 
@@ -513,47 +511,27 @@ export function ChatView() {
         <InputBar />
       )}
 
-      {/* 悬浮新建按钮：仅无会话时显示 */}
+      {/* 悬浮新建按钮：仅无会话时显示，点击打开侧边抽屉 */}
       {isConnected && sessions.length === 0 && (
-        <>
-          {fabOpen && (
-            <div style={{
-              position: 'fixed', bottom: '80px', right: '16px',
-              background: 'var(--bg-elevated)', border: '1px solid var(--border-color)',
-              borderRadius: '14px', boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-              zIndex: 150, overflow: 'hidden', minWidth: '160px',
-              animation: 'slide-up 0.15s ease both',
-            }}>
-              <div style={{ padding: '8px 12px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>新建会话</div>
-              {[...new Set(sessions.map(s => s.projectPath).filter(Boolean) as string[])].map(p => (
-                <button key={p} onClick={() => { createSession({ projectPath: p }); setFabOpen(false); }}
-                  style={{ display: 'block', width: '100%', padding: '10px 14px', border: 'none', borderTop: '1px solid var(--border-color)',
-                    background: 'transparent', color: 'var(--text-primary)', fontSize: '13px', cursor: 'pointer', textAlign: 'left',
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {p ? (function(){ const n=p.replace(/\\/g,'/'); return n.length>30?'.../'+n.split('/').filter(Boolean).slice(-2).join('/'):n; })() : '（当前目录）'}
-                </button>
-              ))}
-            </div>
-          )}
-          <button onClick={() => setFabOpen(v => !v)} style={{
-            position: 'fixed', bottom: '80px', right: '16px',
-            width: '44px', height: '44px', borderRadius: '50%',
-            background: fabOpen ? 'var(--bg-tertiary)' : 'var(--accent)',
-            color: fabOpen ? 'var(--text-secondary)' : '#fff',
-            border: `1px solid ${fabOpen ? 'var(--border-color)' : 'var(--accent)'}`,
-            fontSize: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', zIndex: 151, transition: 'all 0.2s',
-            boxShadow: '0 4px 16px rgba(108,123,255,0.3)',
-          }}>
-            {fabOpen ? '✕' : '+'}
-          </button>
-        </>
+        <button onClick={() => setSessionDrawerOpen(true)} style={{
+          position: 'fixed', bottom: '80px', right: '16px',
+          width: '44px', height: '44px', borderRadius: '50%',
+          background: 'var(--accent)',
+          color: '#fff',
+          border: '1px solid var(--accent)',
+          fontSize: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', zIndex: 151, transition: 'all 0.2s',
+          boxShadow: '0 4px 16px rgba(108,123,255,0.3)',
+        }}>
+          +
+        </button>
       )}
 
       {/* 会话抽屉 */}
       <SessionDrawer
         open={sessionDrawerOpen}
         onClose={() => setSessionDrawerOpen(false)}
+        autoCreate={true}
       />
 
       {/* 权限审批弹窗 */}

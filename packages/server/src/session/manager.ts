@@ -65,6 +65,8 @@ interface Session {
   _restoreTime?: number;
   /** attach 模式：进程退出清理锁，防止并发 send_message 触发重复广播 */
   _cleaningUp?: boolean;
+  /** spawn 模式：--resume 初始历史回放中，跳过 _cacheStreamEvent 避免与 JSONL 重复 */
+  _resumeOutputting?: boolean;
 }
 
 /**
@@ -98,9 +100,10 @@ export class SessionManager extends EventEmitter {
   }
 
   /**
-   * 新客户端连接时推送当前状态（会话列表 + 所有已 attach 的历史消息）
+   * 新客户端连接时推送当前状态（会话列表 + 所有会话的历史消息）
+   * spawn 会话在推送前会从 JSONL 刷新，确保主机 CLI 端新增的消息同步到远程端
    */
-  sendStateToNewClient(ws: WebSocket): void {
+  async sendStateToNewClient(ws: WebSocket): Promise<void> {
     if (!this.wsServer) return;
 
     // 1. 发送会话列表
@@ -110,15 +113,30 @@ export class SessionManager extends EventEmitter {
       createServerEvent('session_list', { sessions })
     );
 
-    // 2. 对每个已 attach 且有历史的会话，重放历史事件
+    // 2. 对每个会话，发送前刷新 spawn 会话的历史缓存，再推送历史消息
     for (const [sessionId, session] of this.sessions) {
+      // spawn 模式：从 JSONL 重新读取最新历史（主机 CLI 可能已写入新消息）
+      if (session.info.mode === 'spawn' && !session.watcher) {
+        try {
+          const jsonlPath = JsonlHistory.resolveJsonlPath(sessionId, session.info.projectPath);
+          if (jsonlPath) {
+            const fresh = await JsonlHistory.read(jsonlPath);
+            if (fresh && fresh.length > 0) {
+              session.historyMessages = fresh;
+            }
+          }
+        } catch {
+          // JSONL 不可读，使用现有缓存
+        }
+      }
+
       if (session.historyMessages && session.historyMessages.length > 0) {
         this.wsServer.sendToClient(
           ws,
           createServerEvent('history', {
             messages: session.historyMessages,
             sessionId,
-            mode: 'attach',
+            mode: session.info.mode || 'spawn',
           }, { sessionId })
         );
       }
@@ -276,6 +294,10 @@ export class SessionManager extends EventEmitter {
     // - 有 JSONL 历史 → --resume（恢复已有对话）
     // - 无 JSONL 历史 → --session-id（全新开始）
     const hasHistory = jsonlPath && existsSync(jsonlPath);
+    // 已有历史消息 → 标记为 resume 回放阶段，跳过 _cacheStreamEvent 避免与 JSONL 重复
+    if (hasHistory && historyMessages && historyMessages.length > 0) {
+      session._resumeOutputting = true;
+    }
     try {
       const proc = claudeSpawner.spawn({
         sessionId,
@@ -948,6 +970,19 @@ export class SessionManager extends EventEmitter {
     // 仅处理 stream 事件
     if (serverEvent.type !== 'stream') return;
 
+    // --resume 初始历史回放阶段：跳过缓存，避免与 JSONL 已加载的 historyMessages 重复
+    // 首次 result 事件后以 JSONL 权威数据自愈覆盖，确保历史消息完整性
+    if (session._resumeOutputting) {
+      if (serverEvent.event === 'result') {
+        session._resumeOutputting = false;
+        // 自愈：以 JSONL 权威数据覆盖 historyMessages，修复历史遗留的损坏记录
+        this._selfHealFromJsonl(sessionId).catch(err => {
+          console.error(`[SelfHeal] 会话 ${sessionId.slice(0, 8)} 自愈失败:`, (err as Error).message);
+        });
+      }
+      return;
+    }
+
     // 初始化缓存
     if (!session.historyMessages) session.historyMessages = [];
     if (!session._currentTurnMessages) session._currentTurnMessages = [];
@@ -1010,6 +1045,35 @@ export class SessionManager extends EventEmitter {
       if (!session.watcher) {
         this._updateStatus(sessionId, 'idle', '刚刚');
       }
+    }
+  }
+
+  /**
+   * 自愈：以 JSONL 权威数据覆盖 historyMessages
+   * 用于 --resume 历史回放完成后修复可能的损坏记录（重复/缺失 tool_result）
+   */
+  private async _selfHealFromJsonl(sessionId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+
+    const jsonlPath = JsonlHistory.resolveJsonlPath(
+      sessionId,
+      session.info.projectPath
+    );
+    if (!jsonlPath) return;
+
+    try {
+      const fresh = await JsonlHistory.read(jsonlPath);
+      if (fresh && fresh.length > 0) {
+        session.historyMessages = fresh;
+        session._currentTurnMessages = [];
+        console.log(
+          `[SelfHeal] 会话 ${sessionId.slice(0, 8)} 已从 JSONL 自愈恢复 ${fresh.length} 条消息`
+        );
+      }
+    } catch (err) {
+      // JSONL 不可读，保留现有缓存
+      throw err;
     }
   }
 
@@ -1113,7 +1177,27 @@ export class SessionManager extends EventEmitter {
           });
           restoredCount++;
         } else if (ps.historyMessages?.length) {
-          // spawn 模式无 JSONL：创建 stub 会话，仅缓存历史消息
+          // spawn 模式：尝试自动恢复进程（--resume 拉起，避免用户手动重连）
+          const projectPath = ps.info.projectPath;
+          if (projectPath) {
+            try {
+              await this.spawnConnectSession({
+                sessionId: ps.info.id,
+                projectPath,
+                model: ps.info.model,
+              });
+              console.log(`[Restore] 已自动恢复 spawn 会话: ${ps.info.id.slice(0, 8)}`);
+              restoredCount++;
+              continue;
+            } catch (err) {
+              console.warn(
+                `[Restore] 自动恢复 spawn 会话失败，降级为 stopped: ${ps.info.id.slice(0, 8)}`,
+                (err as Error).message
+              );
+            }
+          }
+
+          // 回退：无法自动恢复则创建 stopped 状态 stub
           const info: SessionInfo = {
             ...ps.info,
             status: 'stopped', // 子进程已退出
@@ -1406,7 +1490,21 @@ export class SessionManager extends EventEmitter {
       }
     } catch { /* 锁文件/目录清理失败，不影响接管 */ }
 
-    // 4. 以 spawn 模式重新创建（--resume TUI 模式，不存在锁冲突，stdin 开放）
+    // 4. 重新读取 JSONL 获取最新历史（修复：主机端直接对话后远程重连时消息同步不完整）
+    const jsonlPath = JsonlHistory.resolveJsonlPath(sessionId, projectPath);
+    let latestHistoryMessages = session.historyMessages; // 回退到旧缓存
+    if (jsonlPath) {
+      try {
+        const fresh = await JsonlHistory.read(jsonlPath);
+        if (fresh && fresh.length > 0) {
+          latestHistoryMessages = fresh;
+        }
+      } catch {
+        // JSONL 不可读，使用旧缓存
+      }
+    }
+
+    // 4.5 以 spawn 模式重新创建（--resume TUI 模式，不存在锁冲突，stdin 开放）
     const proc = claudeSpawner.spawn({
       sessionId,
       projectPath,
@@ -1425,7 +1523,8 @@ export class SessionManager extends EventEmitter {
       },
       process: proc,
       parser,
-      historyMessages: session.historyMessages,
+      historyMessages: latestHistoryMessages,
+      _resumeOutputting: latestHistoryMessages && latestHistoryMessages.length > 0,
     };
 
     this.sessions.set(sessionId, newSession);
