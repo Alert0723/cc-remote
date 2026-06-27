@@ -7,6 +7,7 @@ import type { ServerEvent, SessionInfo, ToolCallDetail } from '@cc-remote/shared
 import { detectAskUserQuestion } from '@cc-remote/shared';
 import { useConnectionStore } from './connectionStore.js';
 import { showToast } from '../lib/toast.js';
+import { addRecentPath } from '../lib/recentPaths.js';
 import { eventBridge } from '../lib/event-bridge.js';
 
 /** 每会话最大消息数，超出后裁剪旧消息（保留首条） */
@@ -136,6 +137,10 @@ export const useSessionStore = create<SessionState>((set, get) => {
           sessions: newSessions,
           ...(becameStopped ? { currentSessionId: null, pendingQuestion: null, pendingApproval: null } : {}),
         });
+        // 记录所有已连接会话的项目路径到历史
+        for (const s of newSessions) {
+          if (s.projectPath) addRecentPath(s.projectPath);
+        }
       } else if (event.type === 'status_change') {
         const { sessions, currentSessionId } = get();
         const updated = sessions.map((s) =>
@@ -408,6 +413,10 @@ export const useSessionStore = create<SessionState>((set, get) => {
           s.id === sessionId ? event.data.session : s
         );
         set({ sessions: updated });
+        // 记录切换到的会话项目路径到历史
+        if (event.data.session?.projectPath) {
+          addRecentPath(event.data.session.projectPath);
+        }
       } else if (event.type === 'pending_resolved') {
         // 其他设备已处理待审批/提问，清除当前设备的弹窗
         if (!event.data) return;
@@ -473,6 +482,11 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
     createSession: async (options) => {
       const { wsClient, apiClient } = useConnectionStore.getState();
+
+      // 记录到历史项目
+      if (options?.projectPath) {
+        addRecentPath(options.projectPath);
+      }
 
       // 优先 WebSocket 发送，断开时降级到 HTTP API
       if (wsClient?.isConnected()) {
@@ -549,6 +563,8 @@ export const useSessionStore = create<SessionState>((set, get) => {
       }
 
       const session = await apiClient.attachSession(sessionId, projectPath);
+      // 记录项目路径到历史
+      if (projectPath) addRecentPath(projectPath);
       // 合并到 store 并自动选中
       set((state) => ({
         sessions: [...state.sessions.filter((s) => s.id !== session.id), session],
@@ -634,6 +650,8 @@ export const useSessionStore = create<SessionState>((set, get) => {
       }
 
       const newInfo = await apiClient.takeoverSession(sessionId);
+      // 记录项目路径到历史
+      if (newInfo.projectPath) addRecentPath(newInfo.projectPath);
       set(state => ({
         sessions: state.sessions.filter(x => x.id !== sessionId).concat(newInfo),
         currentSessionId: newInfo.id,

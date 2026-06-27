@@ -464,6 +464,7 @@ export function SessionDrawer({ open, onClose, autoCreate }: SessionDrawerProps)
     setLoading(true);
     try {
       await attachDiskSession(sessionId, projectPath);
+      if (projectPath) addRecentPath(projectPath);
       showToast('已连接', 'success');
       onClose();
     } catch (err: any) {

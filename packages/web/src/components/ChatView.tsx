@@ -59,6 +59,7 @@ export function ChatView() {
   const messageListRef = useRef<MessageListHandle>(null);
   const [indexOpen, setIndexOpen] = useState(false);
   const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false);
+  const [sessionDrawerAutoCreate, setSessionDrawerAutoCreate] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [debugMenuOpen, setDebugMenuOpen] = useState(false);
   const [restartConfirm, setRestartConfirm] = useState(false);
@@ -154,7 +155,7 @@ export function ChatView() {
         <div className="flex items-center gap-3">
           {/* 会话选择按钮 */}
           <button
-            onClick={() => setSessionDrawerOpen(true)}
+            onClick={() => { setSessionDrawerAutoCreate(false); setSessionDrawerOpen(true); }}
             className="flex items-center gap-1.5 rounded-lg transition-all duration-150"
             style={{
               padding: '4px 10px',
@@ -513,7 +514,7 @@ export function ChatView() {
 
       {/* 悬浮新建按钮：仅无会话时显示，点击打开侧边抽屉 */}
       {isConnected && sessions.length === 0 && (
-        <button onClick={() => setSessionDrawerOpen(true)} style={{
+        <button onClick={() => { setSessionDrawerAutoCreate(true); setSessionDrawerOpen(true); }} style={{
           position: 'fixed', bottom: '80px', right: '16px',
           width: '44px', height: '44px', borderRadius: '50%',
           background: 'var(--accent)',
@@ -531,7 +532,7 @@ export function ChatView() {
       <SessionDrawer
         open={sessionDrawerOpen}
         onClose={() => setSessionDrawerOpen(false)}
-        autoCreate={true}
+        autoCreate={sessionDrawerAutoCreate}
       />
 
       {/* 权限审批弹窗 */}
