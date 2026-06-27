@@ -377,7 +377,12 @@ export const useSessionStore = create<SessionState>((set, get) => {
 
         const merged = [...existing];
         for (const msg of incoming) {
-          if (existingIds.has(msg.id)) continue; // 已是真实 UUID，跳过
+          if (existingIds.has(msg.id)) {
+            // 已存在：用 JSONL 权威数据更新字段（修复旧损坏的 toolCalls 无 result 问题）
+            const idx = merged.findIndex(m => m.id === msg.id);
+            if (idx !== -1) merged[idx] = { ...merged[idx], ...msg };
+            continue;
+          }
 
           // 寻找内容匹配的本地临时 ID 消息，替换为真实 UUID
           if (msg.role === 'user' && msg.content) {

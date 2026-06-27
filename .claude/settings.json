@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(*packages/*)",
+      "Write(*packages/*)",
+      "Bash(curl *)",
+      "Bash(sleep *)"
+    ]
+  }
+}
