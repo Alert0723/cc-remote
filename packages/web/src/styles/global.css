@@ -10,24 +10,24 @@
    会跳过 CSS 变量重算。纯 class 选择器强制 WebKit 在切换时重新求值。 */
 .theme-dark {
   color-scheme: dark;
-  /* 底色体系（暖褐灰调，与珊瑚橙协调） */
-  --bg-primary: #161411;
-  --bg-secondary: #1C1A17;
-  --bg-tertiary: #22201C;
-  --bg-elevated: #292722;
+  /* 底色体系（纯暗黑中性灰，渐进层次） */
+  --bg-primary: #0C0C0C;
+  --bg-secondary: #131313;
+  --bg-tertiary: #1A1A1A;
+  --bg-elevated: #212121;
 
   /* 气泡 */
   --bg-bubble-user: #5E4830;
-  --bg-bubble-assistant: #22201C;
+  --bg-bubble-assistant: #1A1A1A;
 
   /* 文字 */
-  --text-primary: #E8E4E0;
-  --text-secondary: #95908A;
-  --text-muted: #615D58;
+  --text-primary: #E4E4E4;
+  --text-secondary: #909090;
+  --text-muted: #5C5C5C;
 
   /* 边框 */
-  --border-color: rgba(255, 255, 255, 0.07);
-  --border-visible: rgba(255, 255, 255, 0.11);
+  --border-color: rgba(255, 255, 255, 0.06);
+  --border-visible: rgba(255, 255, 255, 0.10);
 
   /* 语义色 */
   --accent: #D77757;
@@ -41,8 +41,8 @@
   --warning-bg: rgba(215, 119, 87, 0.12);
 
   /* 代码 / 工具 */
-  --tool-bg: #1E1C19;
-  --code-bg: #141310;
+  --tool-bg: #151515;
+  --code-bg: #0A0A0A;
   --inline-code-bg: rgba(215, 119, 87, 0.12);
   --inline-code-text: #E8A890;
 

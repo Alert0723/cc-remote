@@ -18,14 +18,14 @@ interface UIState {
 
 /** 主题 CSS 变量值（用于动态 <style> 标签注入，绕过 iOS Safari compositor 缓存） */
 const DARK_VARS: Record<string, string> = {
-  '--bg-primary': '#161411', '--bg-secondary': '#1C1A17', '--bg-tertiary': '#22201C',
-  '--bg-elevated': '#292722', '--bg-bubble-user': '#5E4830', '--bg-bubble-assistant': '#22201C',
-  '--text-primary': '#E8E4E0', '--text-secondary': '#95908A', '--text-muted': '#615D58',
-  '--border-color': 'rgba(255,255,255,0.07)', '--border-visible': 'rgba(255,255,255,0.11)',
+  '--bg-primary': '#0C0C0C', '--bg-secondary': '#131313', '--bg-tertiary': '#1A1A1A',
+  '--bg-elevated': '#212121', '--bg-bubble-user': '#5E4830', '--bg-bubble-assistant': '#1A1A1A',
+  '--text-primary': '#E4E4E4', '--text-secondary': '#909090', '--text-muted': '#5C5C5C',
+  '--border-color': 'rgba(255,255,255,0.06)', '--border-visible': 'rgba(255,255,255,0.10)',
   '--accent': '#D77757', '--accent-hover': '#E08A6D', '--accent-soft': 'rgba(215,119,87,0.15)',
   '--danger': '#EF4444', '--danger-bg': 'rgba(239,68,68,0.12)', '--success': '#10B981',
   '--success-bg': 'rgba(16,185,129,0.12)', '--warning': '#D77757',
-  '--warning-bg': 'rgba(215,119,87,0.12)', '--tool-bg': '#1E1C19', '--code-bg': '#141310',
+  '--warning-bg': 'rgba(215,119,87,0.12)', '--tool-bg': '#151515', '--code-bg': '#0A0A0A',
   '--inline-code-bg': 'rgba(215,119,87,0.12)', '--inline-code-text': '#E8A890',
   '--scrollbar-thumb': 'rgba(255,255,255,0.10)', '--scrollbar-track': 'transparent',
 };
@@ -85,7 +85,7 @@ function applyTheme(t: Theme) {
   // meta theme-color
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    meta.setAttribute('content', t === 'dark' ? '#161411' : '#F8F8FA');
+    meta.setAttribute('content', t === 'dark' ? '#0C0C0C' : '#F8F8FA');
   }
 
   try { localStorage.setItem('cc-remote-theme', t); } catch { /* 静默 */ }
