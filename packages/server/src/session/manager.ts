@@ -198,6 +198,9 @@ export class SessionManager extends EventEmitter {
       model: options.model,
     };
 
+    // 确保元数据文件存在，使会话能被 scanDiskSessions 发现
+    this._ensureSessionMeta(sessionId, options.projectPath);
+
     const parser = new StreamParser({ sessionId });
 
     const session: Session = {
@@ -291,6 +294,9 @@ export class SessionManager extends EventEmitter {
     };
 
     this.sessions.set(sessionId, session);
+
+    // 确保元数据文件存在，使会话能被 scanDiskSessions 发现
+    this._ensureSessionMeta(sessionId, projectPath);
 
     // 启动 Claude Code 进程（全控制模式）
     // - 有 JSONL 历史 → --resume（恢复已有对话）
@@ -612,6 +618,16 @@ export class SessionManager extends EventEmitter {
     session.watcher = watcher;
 
     // 10. 确保元数据文件存在（断开后能被 scanDiskSessions 发现）
+    this._ensureSessionMeta(sessionId, projectPath);
+
+    return info;
+  }
+
+  /**
+   * 确保会话元数据文件存在（~/.claude/sessions/<sessionId>.json）
+   * 写入失败不影响主流程
+   */
+  private _ensureSessionMeta(sessionId: string, projectPath?: string): void {
     try {
       const sessionsDir = join(homedir(), '.claude', 'sessions');
       if (!existsSync(sessionsDir)) {
@@ -625,11 +641,8 @@ export class SessionManager extends EventEmitter {
         }));
       }
     } catch (err) {
-      // 写入失败不影响 attach 流程
-      console.error(`[Attach] 写入元数据文件失败: ${(err as Error).message}`);
+      console.error(`[SessionMeta] 写入元数据文件失败: ${(err as Error).message}`);
     }
-
-    return info;
   }
 
   /**
@@ -1610,21 +1623,10 @@ export class SessionManager extends EventEmitter {
    */
   async deleteSession(sessionId: string): Promise<void> {
     const session = this.sessions.get(sessionId);
+    const projectPath = session?.info.projectPath || process.cwd();
 
     // 确保元数据文件存在，使会话能被 scanDiskSessions 发现
-    const sessionsDir = join(homedir(), '.claude', 'sessions');
-    const metaPath = join(sessionsDir, `${sessionId}.json`);
-    const projectPath = session?.info.projectPath || process.cwd();
-    const hasMeta = existsSync(metaPath);
-
-    if (!hasMeta) {
-      // spawn 会话无元数据文件 → 创建一份用于磁盘列表
-      try {
-        if (!existsSync(sessionsDir)) mkdirSync(sessionsDir, { recursive: true });
-        writeFileSync(metaPath, JSON.stringify({ sessionId, cwd: projectPath }));
-        console.log(`[Delete] 已创建元数据: ${metaPath}`);
-      } catch {}
-    }
+    this._ensureSessionMeta(sessionId, projectPath);
 
     // 先关闭内存中的会话（即使失败也继续）
     try {
